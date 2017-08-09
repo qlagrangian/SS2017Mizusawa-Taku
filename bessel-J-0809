@@ -1,0 +1,156 @@
+# 一括処理用コード ##
+
+
+## file名定義用のsetup ################################################
+iiis <- c('00','30','60','90')
+aaas <- c('00','05','0998')
+fkrs <- c('f','k','r')
+n <- 4
+#####################################################################
+
+
+### besselJ-map #####################################################
+
+besselJ_map <- function( N_grid, nu, k, th0, dx, dy){
+
+	x_cen <- N_grid / 2 + 1 + dx
+	y_cen <- N_grid /2 + 1 + dy
+	XX <- ( c(1:N_grid) - x_cen ) /N_grid *2
+	YY <- ( c(1:N_grid) - y_cen ) /N_grid *2
+
+	z <- matrix( 0, N_grid, N_grid)
+		for (i_x in c(1:N_grid)){
+			for (i_y in c(1:N_grid)){
+				xx <- (1.0 *i_x - x_cen) /N_grid*2
+				yy <- (1.0 *i_y - y_cen) /N_grid*2
+				theta <- atan2(yy,xx)
+				rr <- sqrt(xx**2.0 + yy**2.0)
+					if (rr <= 1.0 )
+					{
+					z[i_x,i_y] <- besselJ( rr*j0[k,nu+1], nu) * cos( nu*theta - th0)
+					}
+			}
+		}
+		return(z)
+	}
+#####################################################################
+
+
+  ### Preparation ###
+
+  ### 0 position for Jn(x)
+
+  	j0 <- read.table('bessel0-2.dat')
+
+  	N_nu_max <- dim(j0)[2] - 5  # = 6
+  	N_k_max <- dim(j0)[1] - 9   # = 6
+
+  ### manual dimension setting
+
+  #	  N_nu_max <- 3
+  #	  N_k_max <- 3
+
+
+  ### parameter setup
+
+    N_grid <- 128;
+    I0 <- matrix(0,N_grid,N_grid);
+    I0_conv <- matrix(0,N_grid,N_grid);
+    I0_fin <- matrix(0,N_grid,N_grid);
+
+    XX <- numeric(N_grid);
+    YY <- numeric(N_grid);
+    XX <- 1.0 * (c(1:N_grid) -1);
+  	YY <- 1.0 * (c(1:N_grid) -1);
+
+    color.level <- colorRampPalette(c("black","darkred","yellow","white"))(100)
+
+#####################################################################
+
+
+library(FITSio)
+
+#### 一括処理（ループ）#################################################
+
+for (aaa in aaas){
+  for (fkr in fkrs){
+    for (i in 1:n)   {
+      filename <- sprintf("a%s_%s__i%02d",aaa,fkr,30*(i-1))
+      imagename <- sprintf("%s%s%02d",aaa,fkr,30*(i-1))
+
+      fits_image <- matrix(0,128,128)
+      dirname <- '~/Desktop/R/Wd-0809/HYPu/'
+
+      fits_image <- readFITS(file=paste(dirname,filename,'.fits',sep=''))$imDat
+      #fits_header <- readFITS(file=paste(dirname,filename,'.fits',sep=''))$header
+      #fits_axis <- readFITS(file=paste(dirname,filename,'.fits',sep=''))$axDat
+      testimage <- fits_image[,,1,1]
+
+      par(mfrow=c(1,1),pty="s")               #元イメージ
+      image(XX,YY,testimage,col=color.level)
+
+##ここでimage（testimage）の保存をする
+      filenameB <- sprintf("a%s%s-i%02d",aaa,fkr,30*(i-1))
+
+      imsave <- paste(imagename,'.pdf',sep='')
+      print(imsave)
+      pdf(imsave)
+      image(XX,YY,testimage,col=color.level)
+      dev.off()
+
+
+	  z_img <- testimage
+	  coeff_c <- matrix(0,N_nu_max,N_k_max)
+	  coeff_s <- matrix(0,N_nu_max,N_k_max)
+
+	  dx <- 0
+	  dy <- 0
+	  
+		for (nu in c(0:(N_nu_max-1))){
+		  for (k in c(1:N_k_max)){
+		    z <- besselJ_map(N_grid,nu,k,0,dx,dy)
+		    coeff_c[nu+1,k] <- sum(z*z_img)/sum(z*z)
+		      if (nu!=0){
+		        z <- besselJ_map(N_grid,nu,k,pi/2.0,dx,dy)
+		        coeff_s[nu+1,k] <- sum(z*z_img)/sum(z*z)
+		      }
+		    cat(nu,k,coeff_c[nu+1,k],coeff_s[nu+1,k],"\n")
+		  }
+		}
+
+
+    test <- numeric(0)
+    z_mod <- matrix(0,N_grid,N_grid)
+      for (nu in c(0:(N_nu_max-1))){
+        for (k in c(1:N_k_max)){
+          z <- besselJ_map(N_grid,nu,k,0,dx,dy)
+          z_mod <- z_mod + coeff_c[nu+1,k]*z
+          z <- besselJ_map(N_grid,nu,k,pi/2.0,dx,dy)
+          z_mod <- z_mod + coeff_s[nu+1,k]*z
+          cat(nu,k,coeff_c[nu+1,k],coeff_s[nu+1,k],"\n")
+          test <- rbind(test,c(nu,k,coeff_c[nu+1,k],coeff_s[nu+1,k]))
+        }
+      }
+
+    testaa = data.frame(nu=test[,1],k=test[,2],c=test[,3],s=test[,4])
+    par(mfrow=c(1,1),pty="s")
+    image(XX,YY,z_mod,col=color.level)
+
+###ここでもimageのsaveとtestaaの書き出しをしたい
+
+      imsaveB <- paste(imagename,'*','.pdf',sep='')
+      print(imsaveB)
+      pdf(imsaveB)
+      image(XX,YY,z_mod,col=color.level)
+      dev.off()
+
+      datfile <- paste('t',imagename,'.dat',sep='')
+      write.table(testaa,datfile,quote=F,col.name=F,append=T)
+
+##### roop終了　#####
+    }
+  }
+}
+####################
+
+
