@@ -1,0 +1,25 @@
+
+####################
+
+
+aaa = "00 05 0998"
+bbb = "f k r"
+ccc = "00 30 60 90"
+set xrange [-0.5:10.5]
+set autoscale y
+set xlabel "{/=20 nu}"
+set ylabel "{/=20 C and S}"
+set grid lt 3 lw 1
+
+do for [aa in aaa]{
+do for [bb in bbb]{
+do for [cc in ccc]{
+ file = "testaa".aa.bb.cc.".dat"
+ filee = "tt".aa.bb.cc.".eps"
+ set term postscript enhanced eps color
+ set output filee
+ plot file using 2:4 with points pt 2 ps 3, file using 2:5 with points pt 7
+ set output
+}
+}
+}
