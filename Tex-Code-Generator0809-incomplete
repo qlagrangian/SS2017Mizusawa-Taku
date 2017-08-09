@@ -1,0 +1,29 @@
+
+## file名定義用のsetup ################################################
+iiis <- c('00','30','60','90')
+aaas <- c('00','05','0998')
+fkrs <- c('f','k','r')
+n <- 4
+#####################################################################
+
+for (aaa in aaas){
+  for (fkr in fkrs){
+    for (i in 1:n)   {
+      filename <- sprintf("a%s-%s-i%02d",aaa,fkr,30*(i-1))
+      imagename <- sprintf("%s%s%02d",aaa,fkr,30*(i-1))
+
+f1 <- '¥begin{figure}[htbp]¥begin{center}¥begin{tabular}{c}¥fbox{¥begin{minipage}{0.5¥hsize}¥begin{center}¥includegraphics[width=7cm]{'
+f2 <- '}¥hspace{1.6cm}[1]¥end{center}¥end{minipage}¥begin{minipage}{0.5¥hsize}¥begin{center}¥includegraphics[width=7cm]{'
+f3 <- '}¥hspace{0.1cm}[2]¥end{center}¥end{minipage}}¥end{tabular}¥caption{'
+f4 <- '}¥label{'
+f5 <- '}¥end{center}¥end{figure}'
+
+ff <- paste(f1,imagename,'.pdf',f2,imagename,'*.pdf',f3,filename,f4,imagename,f5,'¥¥',sep='')
+write(ff,file="figfig0809.tex",append=T)
+print(ff)
+
+##### roop終了　#####
+    }
+  }
+}
+####################
